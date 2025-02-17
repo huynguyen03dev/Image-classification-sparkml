@@ -1,0 +1,7 @@
+# Ignore all image files in all subdirectories within the "data" folder
+data/**/*.png
+data/**/*.jpg
+data/**/*.jpeg
+data/**/*.gif
+data/**/*.bmp
+data/**/*.tiff

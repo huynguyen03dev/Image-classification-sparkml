@@ -1,0 +1,20 @@
+-- Animal zoo classification
+
+Where to find data: kaggleData animal data set 666mb
+
+preprocessing: 
+    - Resizing: 128x128
+    - Normalization: 0-1
+    - Augmentation: xoay, cắt, lật, thay đổi độ sáng
+    - Grayconversion
+    - Histogram Equalization (Cân bằng histogram)
+    - Apply filters: sharpening, blurring, edge detection
+
+data streaming: kafka
+
+sparkml: train model to classify images 
+
+data storage:
+    - mongoDb?
+    - minio elasticsearch ?
+    - hdfs?

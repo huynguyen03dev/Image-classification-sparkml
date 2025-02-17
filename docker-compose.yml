@@ -1,0 +1,96 @@
+services:
+  # Node 1: Hadoop NameNode & DataNode, Spark Master, Zeppelin
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop2.7.4-java8
+    container_name: namenode
+    hostname: namenode
+    environment:
+      - CLUSTER_NAME=animal_cluster
+    ports:
+      - "9870:9870"    # Hadoop web UI
+    volumes:
+      - namenode_data:/hadoop/dfs/name
+    networks:
+      - cluster_net
+
+  spark-master:
+    image: bitnami/spark:latest
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_HOST=spark-master
+    ports:
+      - "7077:7077"    # Spark Master port
+      - "8080:8080"    # Spark Master Web UI
+    depends_on:
+      - namenode
+    networks:
+      - cluster_net
+
+  zeppelin:
+    image: apache/zeppelin:0.10.0
+    container_name: zeppelin
+    ports:
+      - "8081:8080"    # Zeppelin Web UI (bạn truy cập tại http://localhost:8081)
+    environment:
+      - ZEPPELIN_ADDRESS=zeppelin
+      - ZEPPELIN_PORT=8080
+    depends_on:
+      - spark-master
+    networks:
+      - cluster_net
+
+  # Node 2: Hadoop DataNode, Spark Worker
+  datanode1:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop2.7.4-java8
+    container_name: datanode1
+    hostname: datanode1
+    depends_on:
+      - namenode
+    volumes:
+      - datanode1_data:/hadoop/dfs/data
+    networks:
+      - cluster_net
+
+  spark-worker1:
+    image: bitnami/spark:latest
+    container_name: spark-worker1
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    depends_on:
+      - spark-master
+    networks:
+      - cluster_net
+
+  # Node 3: Hadoop DataNode, Spark Worker
+  datanode2:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop2.7.4-java8
+    container_name: datanode2
+    hostname: datanode2
+    depends_on:
+      - namenode
+    volumes:
+      - datanode2_data:/hadoop/dfs/data
+    networks:
+      - cluster_net
+
+  spark-worker2:
+    image: bitnami/spark:latest
+    container_name: spark-worker2
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    depends_on:
+      - spark-master
+    networks:
+      - cluster_net
+
+volumes:
+  namenode_data:
+  datanode1_data:
+  datanode2_data:
+
+networks:
+  cluster_net:
+    driver: bridge
