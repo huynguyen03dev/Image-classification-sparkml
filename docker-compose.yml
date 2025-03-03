@@ -1,96 +1,61 @@
-services:
-  # Node 1: Hadoop NameNode & DataNode, Spark Master, Zeppelin
-  namenode:
-    image: bde2020/hadoop-namenode:2.0.0-hadoop2.7.4-java8
-    container_name: namenode
-    hostname: namenode
-    environment:
-      - CLUSTER_NAME=animal_cluster
-    ports:
-      - "9870:9870"    # Hadoop web UI
-    volumes:
-      - namenode_data:/hadoop/dfs/name
-    networks:
-      - cluster_net
+version: "3.8"
 
+services:
+  ## Spark Master Service
   spark-master:
-    image: bitnami/spark:latest
+    image: bde2020/spark-master:2.4.0-hadoop2.7
     container_name: spark-master
     environment:
-      - SPARK_MODE=master
-      - SPARK_MASTER_HOST=spark-master
+      - INIT_DAEMON_STEP=setup_spark
     ports:
-      - "7077:7077"    # Spark Master port
       - "8080:8080"    # Spark Master Web UI
-    depends_on:
-      - namenode
-    networks:
-      - cluster_net
+      - "7077:7077"    # Spark Master Port
 
-  zeppelin:
-    image: apache/zeppelin:0.10.0
-    container_name: zeppelin
-    ports:
-      - "8081:8080"    # Zeppelin Web UI (bạn truy cập tại http://localhost:8081)
-    environment:
-      - ZEPPELIN_ADDRESS=zeppelin
-      - ZEPPELIN_PORT=8080
-    depends_on:
-      - spark-master
-    networks:
-      - cluster_net
-
-  # Node 2: Hadoop DataNode, Spark Worker
-  datanode1:
-    image: bde2020/hadoop-datanode:2.0.0-hadoop2.7.4-java8
-    container_name: datanode1
-    hostname: datanode1
-    depends_on:
-      - namenode
-    volumes:
-      - datanode1_data:/hadoop/dfs/data
-    networks:
-      - cluster_net
-
+  ## Spark Worker 1 Service
   spark-worker1:
-    image: bitnami/spark:latest
+    image: bde2020/spark-worker:2.4.0-hadoop2.7
     container_name: spark-worker1
     environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-master:7077
+      - "SPARK_MASTER=spark://spark-master:7077"
     depends_on:
       - spark-master
-    networks:
-      - cluster_net
 
-  # Node 3: Hadoop DataNode, Spark Worker
-  datanode2:
-    image: bde2020/hadoop-datanode:2.0.0-hadoop2.7.4-java8
-    container_name: datanode2
-    hostname: datanode2
-    depends_on:
-      - namenode
-    volumes:
-      - datanode2_data:/hadoop/dfs/data
-    networks:
-      - cluster_net
-
+  ## Spark Worker 2 Service
   spark-worker2:
-    image: bitnami/spark:latest
+    image: bde2020/spark-worker:2.4.0-hadoop2.7
     container_name: spark-worker2
     environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-master:7077
+      - "SPARK_MASTER=spark://spark-master:7077"
     depends_on:
       - spark-master
-    networks:
-      - cluster_net
+
+  ## Jupyter Notebook Service
+  jupyter:
+    image: jupyter/pyspark-notebook:latest
+    container_name: jupyter-notebook
+    ports:
+      - "8888:8888"
+    environment:
+      # Ensure the notebook knows where the Spark master is located.
+      - SPARK_MASTER=spark://spark-master:7077
+    volumes:
+      - ./notebooks:/home/jovyan/work
+    depends_on:
+      - spark-master
+
+  ## MinIO Service
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000" # MinIO API port
+      - "9090:9090" # MinIO Console port
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    command: server /minio-image/storage --console-address :9090
+    volumes:
+      - minio-data:/data
 
 volumes:
-  namenode_data:
-  datanode1_data:
-  datanode2_data:
-
-networks:
-  cluster_net:
-    driver: bridge
+  minio-data:

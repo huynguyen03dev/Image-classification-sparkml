@@ -1,0 +1,5 @@
+FROM apache/zeppelin:0.10.0
+
+# Cập nhật pip và cài đặt các thư viện cần thiết
+RUN pip install --upgrade pip && \
+    pip install tensorflow-cpu boto3 pillow
